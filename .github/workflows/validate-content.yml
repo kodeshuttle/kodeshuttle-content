@@ -1,0 +1,34 @@
+name: Validate content
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: content-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Install pinned validation dependencies
+        run: |
+          python3 -m venv "$RUNNER_TEMP/kodeshuttle-venv"
+          "$RUNNER_TEMP/kodeshuttle-venv/bin/python" -m pip install --disable-pip-version-check -r requirements-validation.txt
+
+      - name: Run validator tests
+        run: $RUNNER_TEMP/kodeshuttle-venv/bin/python -m unittest discover -s tests -v
+
+      - name: Validate complete content snapshot
+        run: $RUNNER_TEMP/kodeshuttle-venv/bin/python scripts/content_sync.py validate --commit "$GITHUB_SHA"
