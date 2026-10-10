@@ -1,0 +1,503 @@
+---
+id: ks-docker-getting-started-with-docker-en
+title: "Getting Started with Docker: Run Your First Container"
+slug: getting-started-with-docker
+description: "Learn Docker practically by running containers, managing images, viewing logs, and building your first custom Docker image."
+category: docker
+tags:
+  - docker
+  - containers
+  - devops
+  - beginner
+featured_image: ./cover.png
+---
+
+# Getting Started with Docker
+
+Docker is one of the most widely used tools in DevOps for packaging and running applications consistently across different environments.
+
+Instead of spending too much time on theory, let's learn Docker by actually using it.
+
+## What You'll Learn
+
+In this guide, we'll:
+
+- Verify the Docker installation
+- Run our first container
+- Work with Docker images
+- Run an Nginx web server
+- View container logs
+- Enter a running container
+- Stop and remove containers
+- Build a custom Docker image
+
+---
+
+## 1. Check Docker Installation
+
+If Docker is already installed, verify it with:
+
+```bash
+docker --version
+```
+
+You should see output similar to:
+
+```text
+Docker version 28.x.x, build xxxxxxx
+```
+
+You can also check whether the Docker daemon is running:
+
+```bash
+docker info
+```
+
+If this command returns Docker system information, you're ready to continue.
+
+---
+
+## 2. Run Your First Container
+
+Let's run the official `hello-world` image:
+
+```bash
+docker run hello-world
+```
+
+When you execute this command, Docker:
+
+1. Checks whether the `hello-world` image exists locally.
+2. Downloads the image if it isn't available.
+3. Creates a container from the image.
+4. Starts the container.
+5. Executes the program inside it.
+6. Stops the container after the program finishes.
+
+Check downloaded images:
+
+```bash
+docker images
+```
+
+You should find `hello-world` in the list.
+
+---
+
+## 3. Run an Nginx Web Server
+
+Now let's run a real web server inside Docker.
+
+```bash
+docker run -d \
+  --name my-nginx \
+  -p 8080:80 \
+  nginx
+```
+
+Let's understand the command:
+
+- `docker run` creates and starts a container.
+- `-d` runs the container in the background.
+- `--name my-nginx` gives the container a readable name.
+- `-p 8080:80` maps your computer's port `8080` to container port `80`.
+- `nginx` is the Docker image being used.
+
+Open your browser and visit:
+
+```text
+http://localhost:8080
+```
+
+You should see the default Nginx welcome page.
+
+---
+
+## 4. Check Running Containers
+
+To see running containers:
+
+```bash
+docker ps
+```
+
+To see both running and stopped containers:
+
+```bash
+docker ps -a
+```
+
+You should see the `my-nginx` container in the list.
+
+---
+
+## 5. View Container Logs
+
+Application logs can be viewed using:
+
+```bash
+docker logs my-nginx
+```
+
+To follow logs continuously:
+
+```bash
+docker logs -f my-nginx
+```
+
+Press:
+
+```text
+Ctrl + C
+```
+
+to stop following the logs.
+
+---
+
+## 6. Enter a Running Container
+
+You can execute commands inside a running container.
+
+For our Nginx container:
+
+```bash
+docker exec -it my-nginx /bin/sh
+```
+
+Now you're inside the container.
+
+Try:
+
+```bash
+ls
+```
+
+Check the operating system:
+
+```bash
+cat /etc/os-release
+```
+
+Exit the container shell:
+
+```bash
+exit
+```
+
+The container itself will continue running.
+
+---
+
+## 7. Stop and Start a Container
+
+Stop the Nginx container:
+
+```bash
+docker stop my-nginx
+```
+
+Check running containers:
+
+```bash
+docker ps
+```
+
+`my-nginx` should no longer appear.
+
+But it hasn't been deleted.
+
+Check all containers:
+
+```bash
+docker ps -a
+```
+
+Start it again:
+
+```bash
+docker start my-nginx
+```
+
+Verify:
+
+```bash
+docker ps
+```
+
+---
+
+## 8. Remove a Container
+
+First stop the container:
+
+```bash
+docker stop my-nginx
+```
+
+Then remove it:
+
+```bash
+docker rm my-nginx
+```
+
+You can also force-remove a running container:
+
+```bash
+docker rm -f my-nginx
+```
+
+---
+
+## 9. Pull a Docker Image
+
+Docker images can be downloaded without immediately creating a container.
+
+Let's download Ubuntu:
+
+```bash
+docker pull ubuntu:24.04
+```
+
+Check downloaded images:
+
+```bash
+docker images
+```
+
+Now start an interactive Ubuntu container:
+
+```bash
+docker run -it ubuntu:24.04 bash
+```
+
+Inside the container, run:
+
+```bash
+cat /etc/os-release
+```
+
+Exit:
+
+```bash
+exit
+```
+
+---
+
+## 10. Build Your First Docker Image
+
+Now let's create our own Docker image.
+
+Create a project directory:
+
+```bash
+mkdir docker-demo
+cd docker-demo
+```
+
+Create a file named:
+
+```text
+index.html
+```
+
+Add:
+
+```html
+<!doctype html>
+<html>
+  <head>
+    <title>Docker Demo</title>
+  </head>
+
+  <body>
+    <h1>Hello from Docker!</h1>
+    <p>My first custom Docker image is working.</p>
+  </body>
+</html>
+```
+
+Now create a file named:
+
+```text
+Dockerfile
+```
+
+Add:
+
+```dockerfile
+FROM nginx:alpine
+
+COPY index.html /usr/share/nginx/html/index.html
+
+EXPOSE 80
+```
+
+Your directory should now look like:
+
+```text
+docker-demo/
+├── Dockerfile
+└── index.html
+```
+
+---
+
+## 11. Build the Docker Image
+
+Run:
+
+```bash
+docker build -t my-docker-app .
+```
+
+Here:
+
+- `docker build` builds a Docker image.
+- `-t my-docker-app` assigns a name to the image.
+- `.` tells Docker to use the current directory as the build context.
+
+Check the image:
+
+```bash
+docker images
+```
+
+You should see:
+
+```text
+my-docker-app
+```
+
+---
+
+## 12. Run Your Custom Image
+
+Start a container:
+
+```bash
+docker run -d \
+  --name docker-demo \
+  -p 8080:80 \
+  my-docker-app
+```
+
+Open:
+
+```text
+http://localhost:8080
+```
+
+You should see:
+
+```text
+Hello from Docker!
+
+My first custom Docker image is working.
+```
+
+Congratulations — you just built and ran your own Docker image.
+
+---
+
+## Docker Image vs Container
+
+A simple way to understand the difference:
+
+```text
+Dockerfile
+    ↓
+docker build
+    ↓
+Docker Image
+    ↓
+docker run
+    ↓
+Docker Container
+    ↓
+Running Application
+```
+
+A **Docker image** is a packaged template.
+
+A **Docker container** is a running instance of that image.
+
+You can create multiple containers from the same image.
+
+---
+
+## Useful Docker Commands
+
+| Task | Command |
+| --- | --- |
+| Check Docker version | `docker --version` |
+| View images | `docker images` |
+| Pull an image | `docker pull IMAGE` |
+| View running containers | `docker ps` |
+| View all containers | `docker ps -a` |
+| Run a container | `docker run IMAGE` |
+| Stop a container | `docker stop CONTAINER` |
+| Start a container | `docker start CONTAINER` |
+| Remove a container | `docker rm CONTAINER` |
+| Remove an image | `docker rmi IMAGE` |
+| View logs | `docker logs CONTAINER` |
+| Follow logs | `docker logs -f CONTAINER` |
+| Execute command inside container | `docker exec -it CONTAINER COMMAND` |
+| Build an image | `docker build -t NAME .` |
+
+---
+
+## Cleanup
+
+Remove the demo container:
+
+```bash
+docker rm -f docker-demo
+```
+
+Remove the custom image:
+
+```bash
+docker rmi my-docker-app
+```
+
+You can also check unused Docker resources:
+
+```bash
+docker system df
+```
+
+---
+
+## What's Next?
+
+Now that you understand the basic Docker workflow, the next useful topics are:
+
+1. Docker Volumes
+2. Docker Networking
+3. Docker Compose
+4. Dockerfile Best Practices
+5. Multi-stage Docker Builds
+6. Docker Registries
+7. Docker in CI/CD
+8. Docker with Kubernetes
+---
+
+## Conclusion
+
+In this guide, you didn't just learn what Docker is — you actually used it.
+
+You:
+
+- Ran your first container
+- Started an Nginx web server
+- Managed containers
+- Worked with Docker images
+- Viewed container logs
+- Entered running containers
+- Created a Dockerfile
+- Built your own Docker image
+- Ran your own containerized application
+
+These fundamentals are the foundation for using Docker in real-world DevOps workflows.

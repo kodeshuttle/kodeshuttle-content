@@ -1,0 +1,43 @@
+# Environment and local credentials
+.env
+.env.*
+!.env.example
+.local-credentials/
+.secrets/
+credentials/
+*.pem
+*.p12
+*.pfx
+*.key
+*.crt
+*.cer
+
+# Python environments, caches, and test output
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+
+# Local build and backup artifacts
+build/
+dist/
+*.egg-info/
+*.bak
+*.backup
+*.tmp
+
+# Editor and OS temporary files
+.vscode/
+.idea/
+.DS_Store
+*~
+*.swp
+*.swo

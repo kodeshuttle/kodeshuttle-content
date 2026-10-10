@@ -1,0 +1,89 @@
+name: Sync approved-main metadata
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'articles/**'
+      - 'troubleshooting/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: content-sync-primary
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Install pinned validation dependencies
+        run: |
+          python3 -m venv "$RUNNER_TEMP/kodeshuttle-venv"
+          "$RUNNER_TEMP/kodeshuttle-venv/bin/python" -m pip install --disable-pip-version-check -r requirements-validation.txt
+
+      - name: Run validator tests
+        run: $RUNNER_TEMP/kodeshuttle-venv/bin/python -m unittest discover -s tests -v
+
+      - name: Validate complete content snapshot
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+        run: $RUNNER_TEMP/kodeshuttle-venv/bin/python scripts/content_sync.py validate --commit "$GITHUB_SHA"
+
+  sync:
+    if: github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-24.04
+    environment: content-sync-primary
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Install pinned sync dependencies
+        run: |
+          python3 -m venv "$RUNNER_TEMP/kodeshuttle-venv"
+          "$RUNNER_TEMP/kodeshuttle-venv/bin/python" -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Install configured public pooler CA certificate
+        env:
+          SUPABASE_POOLER_CA_CERT_PEM: ${{ vars.SUPABASE_POOLER_CA_CERT_PEM }}
+        run: |
+          test -n "$SUPABASE_POOLER_CA_CERT_PEM"
+          umask 077
+          printf '%s\n' "$SUPABASE_POOLER_CA_CERT_PEM" > "$RUNNER_TEMP/supabase-pooler-ca.pem"
+          printf 'SUPABASE_POOLER_CA_CERT=%s\n' "$RUNNER_TEMP/supabase-pooler-ca.pem" >> "$GITHUB_ENV"
+
+      - name: Validate complete snapshot (offline, no credentials)
+        run: $RUNNER_TEMP/kodeshuttle-venv/bin/python scripts/content_sync.py validate --commit "$GITHUB_SHA"
+
+      - name: Run read-only database preview
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+          SUPABASE_POOLER_HOST: ${{ vars.SUPABASE_POOLER_HOST }}
+          SUPABASE_CONTENT_SYNC_PASSWORD: ${{ secrets.SUPABASE_CONTENT_SYNC_PASSWORD }}
+        run: $RUNNER_TEMP/kodeshuttle-venv/bin/python scripts/content_sync.py plan --commit "$GITHUB_SHA"
+
+      - name: Apply metadata sync (explicit environment gate)
+        if: vars.KODESHUTTLE_CONTENT_SYNC_ENABLED == '1'
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+          SUPABASE_POOLER_HOST: ${{ vars.SUPABASE_POOLER_HOST }}
+          SUPABASE_CONTENT_SYNC_PASSWORD: ${{ secrets.SUPABASE_CONTENT_SYNC_PASSWORD }}
+          KODESHUTTLE_CONTENT_SYNC_ENABLED: ${{ vars.KODESHUTTLE_CONTENT_SYNC_ENABLED }}
+        run: $RUNNER_TEMP/kodeshuttle-venv/bin/python scripts/content_sync.py sync --commit "$GITHUB_SHA"
